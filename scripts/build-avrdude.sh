@@ -34,7 +34,8 @@ cmake -S "$WORK/src" -B "$WORK/build" \
   -DBUILD_DOC=OFF \
   -DUSE_STATIC_LIBS=ON \
   -DCMAKE_PREFIX_PATH="$(brew --prefix libusb);$(brew --prefix libftdi);$(brew --prefix hidapi)" \
-  -DCMAKE_C_FLAGS="-I$(brew --prefix libusb)/include -I$(brew --prefix libftdi)/include -I$(brew --prefix hidapi)/include"
+  -DCMAKE_C_FLAGS="-I$(brew --prefix libusb)/include -I$(brew --prefix libftdi)/include -I$(brew --prefix hidapi)/include" \
+  -DCMAKE_EXE_LINKER_FLAGS="-framework CoreFoundation -framework IOKit -lobjc"
 cmake --build "$WORK/build" --parallel "$(sysctl -n hw.ncpu)"
 cmake --install "$WORK/build"
 
