@@ -12,7 +12,7 @@ WORK="$ROOT/.build-avrdude"
 OUT="$ROOT/bundles-out"
 PREFIX="$WORK/stage"
 
-brew install libusb libftdi1 hidapi
+brew install libusb libftdi hidapi
 
 rm -rf "$WORK" && mkdir -p "$WORK/src" "$WORK/build" "$PREFIX" "$OUT"
 curl -fL --retry 3 -o "$WORK/avrdude.tar.gz" \
@@ -28,8 +28,8 @@ cmake -S "$WORK/src" -B "$WORK/build" \
   -DCMAKE_DISABLE_FIND_PACKAGE_Libelf=ON \
   -DLIBUSB_LIBRARY="$(brew --prefix libusb)/lib/libusb-1.0.a" \
   -DLIBUSB_INCLUDE_DIR="$(brew --prefix libusb)/include" \
-  -DLIBFTDI_LIBRARY="$(brew --prefix libftdi1)/lib/libftdi1.a" \
-  -DLIBFTDI_INCLUDE_DIR="$(brew --prefix libftdi1)/include" \
+  -DLIBFTDI_LIBRARY="$(brew --prefix libftdi)/lib/libftdi1.a" \
+  -DLIBFTDI_INCLUDE_DIR="$(brew --prefix libftdi)/include" \
   -DLIBHIDAPI_LIBRARY="$(brew --prefix hidapi)/lib/libhidapi.a" \
   -DLIBHIDAPI_INCLUDE_DIR="$(brew --prefix hidapi)/include"
 cmake --build "$WORK/build" --parallel "$(sysctl -n hw.ncpu)"

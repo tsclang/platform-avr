@@ -36,7 +36,7 @@ export PATH="$PREFIX/bin:$PATH"
 test -x "$PREFIX/bin/avr-ld"
 
 # --- gcc (C only) ------------------------------------------------------------
-fetch "https://ftp.gnu.org/g/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz" "$WORK/gcc.tar.xz"
+fetch "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz" "$WORK/gcc.tar.xz"
 tar -C "$WORK/src" -xJf "$WORK/gcc.tar.xz"
 (cd "$WORK/src/gcc-${GCC_VERSION}" && ./contrib/download_prerequisites)
 mkdir -p "$WORK/build/gcc"
