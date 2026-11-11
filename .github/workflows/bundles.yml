@@ -10,9 +10,17 @@ on:
   workflow_dispatch:
     inputs:
       arm64_only:
-        description: "Run only the from-source arm64 builds (skip repacks that would re-upload pinned assets)"
+        description: "Skip the repack jobs (they would re-upload pinned assets)"
         type: boolean
         default: false
+      avrdude:
+        description: "Run the from-source avrdude arm64 build"
+        type: boolean
+        default: true
+      avr_gcc:
+        description: "Run the from-source avr-gcc arm64 build (~2h)"
+        type: boolean
+        default: true
 
 jobs:
   # Repackage upstream binaries (fast).
@@ -84,6 +92,7 @@ jobs:
 
   # avrdude darwin-arm64: no upstream binary — build from sources.
   build-avrdude-arm64:
+    if: ${{ inputs.avrdude }}
     runs-on: macos-15
     permissions:
       contents: write
@@ -106,6 +115,7 @@ jobs:
   # avr-gcc darwin-arm64: no upstream binary — build from sources
   # (binutils + gcc + avr-libc, C only; ~1-2h on a 3-core runner).
   build-avr-gcc-arm64:
+    if: ${{ inputs.avr_gcc }}
     runs-on: macos-15
     permissions:
       contents: write
