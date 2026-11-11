@@ -1,0 +1,119 @@
+# Builds the avr-gcc and avrdude toolchain bundles for every target and
+# attaches them to the `toolchains-v1` release. Linux bundles repackage
+# upstream binaries (Zak Kemble avr-gcc, avrdude release assets); macOS
+# has no upstream avr-gcc / arm64 avrdude binaries, so those are built
+# from sources natively on an arm64 runner. darwin-x64 avr-gcc is not
+# published — see README for the Homebrew fallback.
+name: bundles
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Repackage upstream binaries (fast).
+  repack-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 30
+    steps:
+      - name: Checkout compiler repo
+        uses: actions/checkout@v4
+        with:
+          repository: tsclang/tsclang
+          ref: develop
+          path: tsclang
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build bundles
+        run: |
+          node tsclang/packages/registry/scripts/build-bundles.mjs --target linux-x64 --only avr-gcc
+          node tsclang/packages/registry/scripts/build-bundles.mjs --target linux-x64 --only avrdude
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd tsclang/.tsclang-tmp/bundles/out
+          gh release view toolchains-v1 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create toolchains-v1 -R "$GITHUB_REPOSITORY" --title "Toolchains v1" --notes "Stable toolchain bundles (sha256-pinned, see README)"
+          for f in *; do
+            echo "uploading $f"
+            gh release upload toolchains-v1 "$f" -R "$GITHUB_REPOSITORY" --clobber
+          done
+          sha256sum *
+
+  # avrdude darwin-x64: repackage the upstream binary (cross-arch packing
+  # is fine — binaries are never executed while packing).
+  repack-macos-x64:
+    runs-on: macos-15
+    permissions:
+      contents: write
+    timeout-minutes: 30
+    steps:
+      - name: Checkout compiler repo
+        uses: actions/checkout@v4
+        with:
+          repository: tsclang/tsclang
+          ref: develop
+          path: tsclang
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build bundle
+        run: node tsclang/packages/registry/scripts/build-bundles.mjs --target darwin-x64 --only avrdude
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd tsclang/.tsclang-tmp/bundles/out
+          gh release view toolchains-v1 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create toolchains-v1 -R "$GITHUB_REPOSITORY" --title "Toolchains v1" --notes "Stable toolchain bundles (sha256-pinned, see README)"
+          for f in *; do
+            echo "uploading $f"
+            gh release upload toolchains-v1 "$f" -R "$GITHUB_REPOSITORY" --clobber
+          done
+          shasum -a 256 *
+
+  # avrdude darwin-arm64: no upstream binary — build from sources.
+  build-avrdude-arm64:
+    runs-on: macos-15
+    permissions:
+      contents: write
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build avrdude
+        run: bash scripts/build-avrdude.sh
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view toolchains-v1 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create toolchains-v1 -R "$GITHUB_REPOSITORY" --title "Toolchains v1" --notes "Stable toolchain bundles (sha256-pinned, see README)"
+          for f in bundles-out/*; do
+            echo "uploading $f"
+            gh release upload toolchains-v1 "$f" -R "$GITHUB_REPOSITORY" --clobber
+          done
+
+  # avr-gcc darwin-arm64: no upstream binary — build from sources
+  # (binutils + gcc + avr-libc, C only; ~1-2h on a 3-core runner).
+  build-avr-gcc-arm64:
+    runs-on: macos-15
+    permissions:
+      contents: write
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build avr-gcc
+        run: bash scripts/build-avr-gcc.sh
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view toolchains-v1 -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create toolchains-v1 -R "$GITHUB_REPOSITORY" --title "Toolchains v1" --notes "Stable toolchain bundles (sha256-pinned, see README)"
+          for f in bundles-out/*; do
+            echo "uploading $f"
+            gh release upload toolchains-v1 "$f" -R "$GITHUB_REPOSITORY" --clobber
+          done
