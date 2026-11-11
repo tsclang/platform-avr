@@ -21,19 +21,17 @@ curl -fL --retry 3 -o "$WORK/avrdude.tar.gz" \
   "https://github.com/avrdudes/avrdude/archive/refs/tags/v${VERSION}.tar.gz"
 tar -C "$WORK/src" -xzf "$WORK/avrdude.tar.gz" --strip-components=1
 
-# Point avrdude's cmake at the static archives; explicit .a paths make the
-# link static where a plain find_package would pick the .dylib.
+# avrdude's CMake does not use find_package for these — it runs bare
+# find_library() and check_include_file() over default paths, so Homebrew's
+# /opt/homebrew is invisible to it. Feed the brew prefixes explicitly and
+# let USE_STATIC_LIBS prefer the .a archives over the .dylibs.
 cmake -S "$WORK/src" -B "$WORK/build" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_DOC=OFF \
-  -DCMAKE_DISABLE_FIND_PACKAGE_Libelf=ON \
-  -DLIBUSB_LIBRARY="$(brew --prefix libusb)/lib/libusb-1.0.a" \
-  -DLIBUSB_INCLUDE_DIR="$(brew --prefix libusb)/include" \
-  -DLIBFTDI_LIBRARY="$(brew --prefix libftdi)/lib/libftdi1.a" \
-  -DLIBFTDI_INCLUDE_DIR="$(brew --prefix libftdi)/include" \
-  -DLIBHIDAPI_LIBRARY="$(brew --prefix hidapi)/lib/libhidapi.a" \
-  -DLIBHIDAPI_INCLUDE_DIR="$(brew --prefix hidapi)/include"
+  -DUSE_STATIC_LIBS=ON \
+  -DCMAKE_PREFIX_PATH="$(brew --prefix libusb);$(brew --prefix libftdi);$(brew --prefix hidapi)" \
+  -DCMAKE_REQUIRED_INCLUDES="$(brew --prefix libusb)/include;$(brew --prefix libftdi)/include;$(brew --prefix hidapi)/include"
 cmake --build "$WORK/build" --parallel "$(sysctl -n hw.ncpu)"
 cmake --install "$WORK/build"
 
