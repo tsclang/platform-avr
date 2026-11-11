@@ -56,7 +56,10 @@ cmake --install "$WORK/build"
 test -x "$PREFIX/bin/avrdude"
 test -f "$PREFIX/etc/avrdude.conf"
 "$PREFIX/bin/avrdude" --version | head -1
-otool -L "$PREFIX/bin/avrdude" | grep -v "System/Library\|/usr/lib" && { echo "unexpected dynamic deps"; exit 1; } || true
+# Self-containment gate: only system frameworks are allowed as dynamic deps.
+# tail skips the otool header line, which would otherwise always match.
+DEPS=$(otool -L "$PREFIX/bin/avrdude" | tail -n +2 | grep -v "System/Library\|/usr/lib" || true)
+if [ -n "$DEPS" ]; then echo "unexpected dynamic deps:"; echo "$DEPS"; exit 1; fi
 
 cat > "$PREFIX/TSC_BUNDLE_NOTICE.txt" <<EOF
 TSClang toolchain bundle: avrdude ${VERSION} (darwin-arm64)

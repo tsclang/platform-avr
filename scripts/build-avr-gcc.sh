@@ -49,9 +49,9 @@ mkdir -p "$WORK/build/gcc"
 "$PREFIX/bin/avr-gcc" --version | head -1
 
 # --- avr-libc ----------------------------------------------------------------
-# Official release tarballs live on Savannah (nongnu); the GitHub repo has
-# no source release assets.
-fetch "https://download.savannah.gnu.org/releases/avr-libc/avr-libc-${AVRLIBC_VERSION}.tar.bz2" "$WORK/avr-libc.tar.bz2"
+# Official release tarballs are attached to the GitHub release whose tag uses
+# underscores (avr-libc-2_2_1-release); Savannah mirrors stop at 2.1.0.
+fetch "https://github.com/avrdudes/avr-libc/releases/download/avr-libc-${AVRLIBC_VERSION//./_}-release/avr-libc-${AVRLIBC_VERSION}.tar.bz2" "$WORK/avr-libc.tar.bz2"
 tar -C "$WORK/src" -xjf "$WORK/avr-libc.tar.bz2"
 mkdir -p "$WORK/build/avr-libc"
 (cd "$WORK/build/avr-libc" \
