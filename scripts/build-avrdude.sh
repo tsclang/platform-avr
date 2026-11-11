@@ -12,7 +12,7 @@ WORK="$ROOT/.build-avrdude"
 OUT="$ROOT/bundles-out"
 PREFIX="$WORK/stage"
 
-brew install libusb libftdi hidapi
+brew install libusb libftdi
 
 rm -rf "$WORK" && mkdir -p "$WORK/src" "$WORK/build" "$PREFIX" "$OUT"
 # The v8.3 GitHub release ships only signature files for the source
@@ -21,20 +21,34 @@ curl -fL --retry 3 -o "$WORK/avrdude.tar.gz" \
   "https://github.com/avrdudes/avrdude/archive/refs/tags/v${VERSION}.tar.gz"
 tar -C "$WORK/src" -xzf "$WORK/avrdude.tar.gz" --strip-components=1
 
+# Homebrew's hidapi ships only the shared library; build the tiny darwin
+# backend (a single translation unit) into a static archive so the bundle
+# stays self-contained. It needs only CoreFoundation/IOKit, which the
+# avrdude link line already carries.
+curl -fL --retry 3 -o "$WORK/hidapi.tar.gz" \
+  "https://github.com/libusb/hidapi/archive/refs/tags/hidapi-0.15.0.tar.gz"
+tar -C "$WORK" -xzf "$WORK/hidapi.tar.gz"
+HIDAPI_SRC="$WORK/hidapi-hidapi-0.15.0"
+mkdir -p "$WORK/hidapi-stage/lib"
+cc -O2 -c "$HIDAPI_SRC/mac/hid.c" \
+  -I"$HIDAPI_SRC" -I"$HIDAPI_SRC/hidapi" -o "$WORK/hidapi.o"
+ar rcs "$WORK/hidapi-stage/lib/libhidapi.a" "$WORK/hidapi.o"
+
 # avrdude's CMake does not use find_package for these — it runs bare
 # find_library() and check_include_file() over default paths and never adds
 # the external include dirs to its targets, expecting them to live in the
 # compiler's default search path. Homebrew's /opt/homebrew is not there, so
-# feed the brew prefixes through CMAKE_PREFIX_PATH (find_library picks the
-# .a archives, with USE_STATIC_LIBS preferring them) and export the headers
+# feed the prefixes through CMAKE_PREFIX_PATH (find_library picks the .a
+# archives, with USE_STATIC_LIBS preferring them) and export the headers
 # via CMAKE_C_FLAGS — that covers both the configure checks and the build.
+# The self-built hidapi stage comes first so its .a wins over any dylib.
 cmake -S "$WORK/src" -B "$WORK/build" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_DOC=OFF \
   -DUSE_STATIC_LIBS=ON \
-  -DCMAKE_PREFIX_PATH="$(brew --prefix libusb);$(brew --prefix libftdi);$(brew --prefix hidapi)" \
-  -DCMAKE_C_FLAGS="-I$(brew --prefix libusb)/include -I$(brew --prefix libftdi)/include -I$(brew --prefix hidapi)/include" \
+  -DCMAKE_PREFIX_PATH="$WORK/hidapi-stage;$(brew --prefix libusb);$(brew --prefix libftdi)" \
+  -DCMAKE_C_FLAGS="-I$HIDAPI_SRC -I$(brew --prefix libusb)/include -I$(brew --prefix libftdi)/include" \
   -DCMAKE_EXE_LINKER_FLAGS="-framework CoreFoundation -framework IOKit -framework Security -lobjc"
 cmake --build "$WORK/build" --parallel "$(sysctl -n hw.ncpu)"
 cmake --install "$WORK/build"
