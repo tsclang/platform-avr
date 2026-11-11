@@ -8,10 +8,16 @@ name: bundles
 
 on:
   workflow_dispatch:
+    inputs:
+      arm64_only:
+        description: "Run only the from-source arm64 builds (skip repacks that would re-upload pinned assets)"
+        type: boolean
+        default: false
 
 jobs:
   # Repackage upstream binaries (fast).
   repack-linux:
+    if: ${{ !inputs.arm64_only }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -46,6 +52,7 @@ jobs:
   # avrdude darwin-x64: repackage the upstream binary (cross-arch packing
   # is fine — binaries are never executed while packing).
   repack-macos-x64:
+    if: ${{ !inputs.arm64_only }}
     runs-on: macos-15
     permissions:
       contents: write

@@ -15,8 +15,10 @@ PREFIX="$WORK/stage"
 brew install libusb libftdi hidapi
 
 rm -rf "$WORK" && mkdir -p "$WORK/src" "$WORK/build" "$PREFIX" "$OUT"
+# The v8.3 GitHub release ships only signature files for the source
+# archives, so use the tag's auto-generated source archive instead.
 curl -fL --retry 3 -o "$WORK/avrdude.tar.gz" \
-  "https://github.com/avrdudes/avrdude/releases/download/v${VERSION}/avrdude-${VERSION}.tar.gz"
+  "https://github.com/avrdudes/avrdude/archive/refs/tags/v${VERSION}.tar.gz"
 tar -C "$WORK/src" -xzf "$WORK/avrdude.tar.gz" --strip-components=1
 
 # Point avrdude's cmake at the static archives; explicit .a paths make the
@@ -42,7 +44,7 @@ otool -L "$PREFIX/bin/avrdude" | grep -v "System/Library\|/usr/lib" && { echo "u
 
 cat > "$PREFIX/TSC_BUNDLE_NOTICE.txt" <<EOF
 TSClang toolchain bundle: avrdude ${VERSION} (darwin-arm64)
-Source: https://github.com/avrdudes/avrdude (v${VERSION} source tarball)
+Source: https://github.com/avrdudes/avrdude (tag v${VERSION} source archive)
 License: GPL-2.0-or-later (avrdude); LGPL-2.1 (libusb), LGPL-2.1 with exception (libftdi), BSD/ISC (hidapi) — linked statically
 Built: $(date -u +%Y-%m-%dT%H:%M:%SZ) by platform-avr CI (scripts/build-avrdude.sh)
 Built from sources because upstream publishes no arm64 macOS binary.

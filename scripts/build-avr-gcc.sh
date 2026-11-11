@@ -49,7 +49,9 @@ mkdir -p "$WORK/build/gcc"
 "$PREFIX/bin/avr-gcc" --version | head -1
 
 # --- avr-libc ----------------------------------------------------------------
-fetch "https://github.com/avrdudes/avr-libc/releases/download/v${AVRLIBC_VERSION}/avr-libc-${AVRLIBC_VERSION}.tar.bz2" "$WORK/avr-libc.tar.bz2"
+# Official release tarballs live on Savannah (nongnu); the GitHub repo has
+# no source release assets.
+fetch "https://download.savannah.gnu.org/releases/avr-libc/avr-libc-${AVRLIBC_VERSION}.tar.bz2" "$WORK/avr-libc.tar.bz2"
 tar -C "$WORK/src" -xjf "$WORK/avr-libc.tar.bz2"
 mkdir -p "$WORK/build/avr-libc"
 (cd "$WORK/build/avr-libc" \
